@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Clock, DollarSign, Users, Building2, RotateCcw } from 'lucide-react'
+import { Clock, DollarSign, Users, Building2, RotateCcw, Globe } from 'lucide-react'
 import { NumberInput } from '../components/NumberInput'
+import { countries, type Country } from '../data/holidays'
 
 type Schedule = {
   start_time: string
@@ -31,7 +32,8 @@ type FormData = {
 }
 
 const CalculatorForm = () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [activeTab, setActiveTab] = useState<'monthly' | 'yearly'>('monthly')
+  const [selectedCountry, setSelectedCountry] = useState<Country>(countries.find((c) => c.code === 'FR') || countries[0])
   const [formData, setFormData] = useState<FormData>({
     operating_schedule: {
       weekday: {
@@ -63,8 +65,6 @@ const CalculatorForm = () => {
       weekend_percentage: 50,
     },
   })
-
-  const [activeTab, setActiveTab] = useState('monthly')
 
   const defaultOperatingSchedule = {
     start_time: '10:00',
@@ -139,15 +139,20 @@ const CalculatorForm = () => {
     const weekdaySessions = calculateWeekdaySessions()
     const weekendSessions = weekdaySessions // Assuming same schedule for weekends
 
+    // Calculate average working days per month (excluding holidays)
+    const workingDaysPerMonth = selectedCountry.workingDays / 12
+    const weekdaysPerMonth = Math.round(workingDaysPerMonth) // Weekdays excluding holidays
+    const weekendsPerMonth = Math.round(30.44 - workingDaysPerMonth) // Average days in month minus working days
+
     // Calculate weekday revenue
     const weekdayCapacity = Math.floor((formData.capacity.max_capacity * formData.capacity.weekday_percentage) / 100)
-    const weekdayStandardRevenue = weekdaySessions * 22 * weekdayCapacity * formData.pricing.weekday.standard * 0.7 // 70% standard tickets
-    const weekdayDiscountedRevenue = weekdaySessions * 22 * weekdayCapacity * formData.pricing.weekday.discounted * 0.3 // 30% discounted tickets
+    const weekdayStandardRevenue = weekdaySessions * weekdaysPerMonth * weekdayCapacity * formData.pricing.weekday.standard * 0.7 // 70% standard tickets
+    const weekdayDiscountedRevenue = weekdaySessions * weekdaysPerMonth * weekdayCapacity * formData.pricing.weekday.discounted * 0.3 // 30% discounted tickets
 
     // Calculate weekend revenue
     const weekendCapacity = Math.floor((formData.capacity.max_capacity * formData.capacity.weekend_percentage) / 100)
-    const weekendStandardRevenue = weekendSessions * 8 * weekendCapacity * formData.pricing.weekend.standard * 0.7 // 70% standard tickets
-    const weekendDiscountedRevenue = weekendSessions * 8 * weekendCapacity * formData.pricing.weekend.discounted * 0.3 // 30% discounted tickets
+    const weekendStandardRevenue = weekendSessions * weekendsPerMonth * weekendCapacity * formData.pricing.weekend.standard * 0.7 // 70% standard tickets
+    const weekendDiscountedRevenue = weekendSessions * weekendsPerMonth * weekendCapacity * formData.pricing.weekend.discounted * 0.3 // 30% discounted tickets
 
     const monthlyRevenue = weekdayStandardRevenue + weekdayDiscountedRevenue + weekendStandardRevenue + weekendDiscountedRevenue
     return Math.round(monthlyRevenue)
@@ -195,11 +200,28 @@ const CalculatorForm = () => {
         <div className="space-y-6">
           {/* Operating Schedule */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <Clock className="w-6 h-6" />
-              <h2 className="text-xl font-semibold">Operating Schedule</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Globe className="w-5 h-5 text-gray-500" />
+                <label className="block text-sm font-medium">Country</label>
+              </div>
+              <select
+                value={selectedCountry.code}
+                onChange={(e) => {
+                  const country = countries.find((c) => c.code === e.target.value)
+                  if (country) setSelectedCountry(country)
+                }}
+                className="rounded-md border border-gray-300 p-2 text-sm"
+              >
+                {countries.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.name} ({country.holidays} holidays)
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="space-y-4">
+
+            <div className="flex space-x-8">
               {/* Weekday Schedule */}
               <div>
                 <div className="flex space-x-8">
@@ -283,6 +305,9 @@ const CalculatorForm = () => {
                 <div className="mt-4 flex items-center justify-between">
                   <div className="text-sm text-gray-600">
                     Approximately <b>{weekdaySessions}</b> sessions per day
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {selectedCountry.workingDays} working days per year
                   </div>
                   {isScheduleModified() && (
                     <button
