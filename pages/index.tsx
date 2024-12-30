@@ -1,9 +1,37 @@
 import React, { useState } from 'react'
 import { Clock, DollarSign, Users, Building2 } from 'lucide-react'
 
+type Schedule = {
+  start_time: string
+  end_time: string
+  session_duration: number
+  break_duration: number
+}
+
+type Pricing = {
+  standard: number
+  discounted: number
+}
+
+type FormData = {
+  operating_schedule: {
+    weekday: Schedule
+    weekend: Schedule
+  }
+  pricing: {
+    weekday: Pricing
+    weekend: Pricing
+  }
+  capacity: {
+    max_capacity: number
+    weekday_percentage: number
+    weekend_percentage: number
+  }
+}
+
 const CalculatorForm = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     operating_schedule: {
       weekday: {
         start_time: '10:00',
@@ -36,6 +64,34 @@ const CalculatorForm = () => {
   })
 
   const [activeTab, setActiveTab] = useState('monthly')
+
+  const handleChange = <T extends keyof FormData, U extends keyof FormData[T], V extends keyof FormData[T][U]>(
+    section: T,
+    subsection: U,
+    field: V,
+    value: FormData[T][U][V]
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [subsection]: {
+          ...prev[section][subsection],
+          [field]: value
+        }
+      }
+    }))
+  }
+
+  const handleCapacityChange = (field: keyof FormData['capacity'], value: number) => {
+    setFormData(prev => ({
+      ...prev,
+      capacity: {
+        ...prev.capacity,
+        [field]: value
+      }
+    }))
+  }
 
   const calculateSessionsPerDay = (startTime: string, endTime: string, sessionDuration: number, breakDuration: number) => {
     const [startHour, startMinute] = startTime.split(':').map(Number)
@@ -76,6 +132,7 @@ const CalculatorForm = () => {
                     <input
                       type="time"
                       value={formData.operating_schedule.weekday.start_time}
+                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'start_time', e.target.value)}
                       className="mt-1 w-full rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -84,6 +141,7 @@ const CalculatorForm = () => {
                     <input
                       type="time"
                       value={formData.operating_schedule.weekday.end_time}
+                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'end_time', e.target.value)}
                       className="mt-1 w-full rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -99,6 +157,7 @@ const CalculatorForm = () => {
                     <input
                       type="number"
                       value={formData.operating_schedule.weekday.session_duration}
+                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'session_duration', parseInt(e.target.value))}
                       className="mt-1 w-full rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -107,6 +166,7 @@ const CalculatorForm = () => {
                     <input
                       type="number"
                       value={formData.operating_schedule.weekday.break_duration}
+                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'break_duration', parseInt(e.target.value))}
                       className="mt-1 w-full rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -137,11 +197,13 @@ const CalculatorForm = () => {
                     <input
                       type="number"
                       value={formData.pricing.weekday.standard}
+                      onChange={(e) => handleChange('pricing', 'weekday', 'standard', parseInt(e.target.value))}
                       className="rounded-md border border-gray-300 p-2"
                     />
                     <input
                       type="number"
                       value={formData.pricing.weekend.standard}
+                      onChange={(e) => handleChange('pricing', 'weekend', 'standard', parseInt(e.target.value))}
                       className="rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -150,11 +212,13 @@ const CalculatorForm = () => {
                     <input
                       type="number"
                       value={formData.pricing.weekday.discounted}
+                      onChange={(e) => handleChange('pricing', 'weekday', 'discounted', parseInt(e.target.value))}
                       className="rounded-md border border-gray-300 p-2"
                     />
                     <input
                       type="number"
                       value={formData.pricing.weekend.discounted}
+                      onChange={(e) => handleChange('pricing', 'weekend', 'discounted', parseInt(e.target.value))}
                       className="rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -175,6 +239,7 @@ const CalculatorForm = () => {
                 <input
                   type="number"
                   value={formData.capacity.max_capacity}
+                  onChange={(e) => handleCapacityChange('max_capacity', parseInt(e.target.value))}
                   className="mt-1 w-full rounded-md border border-gray-300 p-2"
                 />
               </div>
@@ -184,6 +249,7 @@ const CalculatorForm = () => {
                   <input
                     type="number"
                     value={formData.capacity.weekday_percentage}
+                    onChange={(e) => handleCapacityChange('weekday_percentage', parseInt(e.target.value))}
                     className="mt-1 w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
@@ -192,6 +258,7 @@ const CalculatorForm = () => {
                   <input
                     type="number"
                     value={formData.capacity.weekend_percentage}
+                    onChange={(e) => handleCapacityChange('weekend_percentage', parseInt(e.target.value))}
                     className="mt-1 w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
