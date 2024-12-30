@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Clock, DollarSign, Users, Building2, RotateCcw } from 'lucide-react'
+import { NumberInput } from '../components/NumberInput'
 
 type Schedule = {
   start_time: string
@@ -247,15 +248,14 @@ const CalculatorForm = () => {
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
                         <label className="block text-sm">Duration (min)</label>
-                        <input
-                          type="number"
+                        <NumberInput
                           value={formData.operating_schedule.weekday.session_duration}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             handleChange(
                               'operating_schedule',
                               'weekday',
                               'session_duration',
-                              parseInt(e.target.value)
+                              value
                             )
                           }
                           className="mt-1 w-20 rounded-md border border-gray-300 p-2"
@@ -263,15 +263,14 @@ const CalculatorForm = () => {
                       </div>
                       <div>
                         <label className="block text-sm">Break (min)</label>
-                        <input
-                          type="number"
+                        <NumberInput
                           value={formData.operating_schedule.weekday.break_duration}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             handleChange(
                               'operating_schedule',
                               'weekday',
                               'break_duration',
-                              parseInt(e.target.value)
+                              value
                             )
                           }
                           className="mt-1 w-20 rounded-md border border-gray-300 p-2"
@@ -315,38 +314,34 @@ const CalculatorForm = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="flex items-center">Standard</div>
-                    <input
-                      type="number"
+                    <NumberInput
                       value={formData.pricing.weekday.standard}
-                      onChange={(e) =>
-                        handleChange('pricing', 'weekday', 'standard', parseInt(e.target.value))
+                      onChange={(value) =>
+                        handleChange('pricing', 'weekday', 'standard', value)
                       }
                       className="rounded-md border border-gray-300 p-2"
                     />
-                    <input
-                      type="number"
+                    <NumberInput
                       value={formData.pricing.weekend.standard}
-                      onChange={(e) =>
-                        handleChange('pricing', 'weekend', 'standard', parseInt(e.target.value))
+                      onChange={(value) =>
+                        handleChange('pricing', 'weekend', 'standard', value)
                       }
                       className="rounded-md border border-gray-300 p-2"
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="flex items-center">Discounted</div>
-                    <input
-                      type="number"
+                    <NumberInput
                       value={formData.pricing.weekday.discounted}
-                      onChange={(e) =>
-                        handleChange('pricing', 'weekday', 'discounted', parseInt(e.target.value))
+                      onChange={(value) =>
+                        handleChange('pricing', 'weekday', 'discounted', value)
                       }
                       className="rounded-md border border-gray-300 p-2"
                     />
-                    <input
-                      type="number"
+                    <NumberInput
                       value={formData.pricing.weekend.discounted}
-                      onChange={(e) =>
-                        handleChange('pricing', 'weekend', 'discounted', parseInt(e.target.value))
+                      onChange={(value) =>
+                        handleChange('pricing', 'weekend', 'discounted', value)
                       }
                       className="rounded-md border border-gray-300 p-2"
                     />
@@ -365,33 +360,28 @@ const CalculatorForm = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium">Maximum Capacity</label>
-                <input
-                  type="number"
+                <NumberInput
                   value={formData.capacity.max_capacity}
-                  onChange={(e) => handleCapacityChange('max_capacity', parseInt(e.target.value))}
+                  onChange={(value) => handleCapacityChange('max_capacity', value)}
                   className="mt-1 w-full rounded-md border border-gray-300 p-2"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium">Weekday Capacity %</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={formData.capacity.weekday_percentage}
-                    onChange={(e) =>
-                      handleCapacityChange('weekday_percentage', parseInt(e.target.value))
-                    }
+                    onChange={(value) => handleCapacityChange('weekday_percentage', value)}
+                    max={100}
                     className="mt-1 w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium">Weekend Capacity %</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={formData.capacity.weekend_percentage}
-                    onChange={(e) =>
-                      handleCapacityChange('weekend_percentage', parseInt(e.target.value))
-                    }
+                    onChange={(value) => handleCapacityChange('weekend_percentage', value)}
+                    max={100}
                     className="mt-1 w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
