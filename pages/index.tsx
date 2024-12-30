@@ -65,41 +65,50 @@ const CalculatorForm = () => {
 
   const [activeTab, setActiveTab] = useState('monthly')
 
-  const handleChange = <T extends keyof FormData, U extends keyof FormData[T], V extends keyof FormData[T][U]>(
+  const handleChange = <
+    T extends keyof FormData,
+    U extends keyof FormData[T],
+    V extends keyof FormData[T][U],
+  >(
     section: T,
     subsection: U,
     field: V,
     value: FormData[T][U][V]
   ) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
         [subsection]: {
           ...prev[section][subsection],
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }))
   }
 
   const handleCapacityChange = (field: keyof FormData['capacity'], value: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       capacity: {
         ...prev.capacity,
-        [field]: value
-      }
+        [field]: value,
+      },
     }))
   }
 
-  const calculateSessionsPerDay = (startTime: string, endTime: string, sessionDuration: number, breakDuration: number) => {
+  const calculateSessionsPerDay = (
+    startTime: string,
+    endTime: string,
+    sessionDuration: number,
+    breakDuration: number
+  ) => {
     const [startHour, startMinute] = startTime.split(':').map(Number)
     const [endHour, endMinute] = endTime.split(':').map(Number)
-    
+
     const totalMinutes = (endHour - startHour) * 60 + (endMinute - startMinute)
     const sessionTotalDuration = sessionDuration + breakDuration
-    
+
     return Math.floor(totalMinutes / sessionTotalDuration)
   }
 
@@ -125,54 +134,88 @@ const CalculatorForm = () => {
             <div className="space-y-4">
               {/* Weekday Schedule */}
               <div>
-                <label className="block text-sm font-medium">Weekdays</label>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <div>
-                    <label className="block text-sm">Open</label>
-                    <input
-                      type="time"
-                      value={formData.operating_schedule.weekday.start_time}
-                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'start_time', e.target.value)}
-                      className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                    />
+                <div className="flex space-x-8">
+                  {/* Operating Hours */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium">Operating Hours</label>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <label className="block text-sm">Opening Time</label>
+                        <input
+                          type="time"
+                          value={formData.operating_schedule.weekday.start_time}
+                          onChange={(e) =>
+                            handleChange(
+                              'operating_schedule',
+                              'weekday',
+                              'start_time',
+                              e.target.value
+                            )
+                          }
+                          className="mt-1 w-24 rounded-md border border-gray-300 p-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm">Closing Time</label>
+                        <input
+                          type="time"
+                          value={formData.operating_schedule.weekday.end_time}
+                          onChange={(e) =>
+                            handleChange(
+                              'operating_schedule',
+                              'weekday',
+                              'end_time',
+                              e.target.value
+                            )
+                          }
+                          className="mt-1 w-24 rounded-md border border-gray-300 p-2"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm">Close</label>
-                    <input
-                      type="time"
-                      value={formData.operating_schedule.weekday.end_time}
-                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'end_time', e.target.value)}
-                      className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Session Duration */}
-              <div>
-                <label className="block text-sm font-medium">Session Details</label>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <div>
-                    <label className="block text-sm">Duration (min)</label>
-                    <input
-                      type="number"
-                      value={formData.operating_schedule.weekday.session_duration}
-                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'session_duration', parseInt(e.target.value))}
-                      className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm">Break (min)</label>
-                    <input
-                      type="number"
-                      value={formData.operating_schedule.weekday.break_duration}
-                      onChange={(e) => handleChange('operating_schedule', 'weekday', 'break_duration', parseInt(e.target.value))}
-                      className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                    />
+                  {/* Session Details */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium">Session Details</label>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <label className="block text-sm">Duration (min)</label>
+                        <input
+                          type="number"
+                          value={formData.operating_schedule.weekday.session_duration}
+                          onChange={(e) =>
+                            handleChange(
+                              'operating_schedule',
+                              'weekday',
+                              'session_duration',
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="mt-1 w-20 rounded-md border border-gray-300 p-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm">Break (min)</label>
+                        <input
+                          type="number"
+                          value={formData.operating_schedule.weekday.break_duration}
+                          onChange={(e) =>
+                            handleChange(
+                              'operating_schedule',
+                              'weekday',
+                              'break_duration',
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="mt-1 w-20 rounded-md border border-gray-300 p-2"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
+
                 <div className="mt-4 text-sm text-gray-600">
-                  Approximately {weekdaySessions} sessions per day
+                  Approximately <b>{weekdaySessions}</b> sessions per day
                 </div>
               </div>
             </div>
@@ -197,13 +240,17 @@ const CalculatorForm = () => {
                     <input
                       type="number"
                       value={formData.pricing.weekday.standard}
-                      onChange={(e) => handleChange('pricing', 'weekday', 'standard', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleChange('pricing', 'weekday', 'standard', parseInt(e.target.value))
+                      }
                       className="rounded-md border border-gray-300 p-2"
                     />
                     <input
                       type="number"
                       value={formData.pricing.weekend.standard}
-                      onChange={(e) => handleChange('pricing', 'weekend', 'standard', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleChange('pricing', 'weekend', 'standard', parseInt(e.target.value))
+                      }
                       className="rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -212,13 +259,17 @@ const CalculatorForm = () => {
                     <input
                       type="number"
                       value={formData.pricing.weekday.discounted}
-                      onChange={(e) => handleChange('pricing', 'weekday', 'discounted', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleChange('pricing', 'weekday', 'discounted', parseInt(e.target.value))
+                      }
                       className="rounded-md border border-gray-300 p-2"
                     />
                     <input
                       type="number"
                       value={formData.pricing.weekend.discounted}
-                      onChange={(e) => handleChange('pricing', 'weekend', 'discounted', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleChange('pricing', 'weekend', 'discounted', parseInt(e.target.value))
+                      }
                       className="rounded-md border border-gray-300 p-2"
                     />
                   </div>
@@ -249,7 +300,9 @@ const CalculatorForm = () => {
                   <input
                     type="number"
                     value={formData.capacity.weekday_percentage}
-                    onChange={(e) => handleCapacityChange('weekday_percentage', parseInt(e.target.value))}
+                    onChange={(e) =>
+                      handleCapacityChange('weekday_percentage', parseInt(e.target.value))
+                    }
                     className="mt-1 w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
@@ -258,7 +311,9 @@ const CalculatorForm = () => {
                   <input
                     type="number"
                     value={formData.capacity.weekend_percentage}
-                    onChange={(e) => handleCapacityChange('weekend_percentage', parseInt(e.target.value))}
+                    onChange={(e) =>
+                      handleCapacityChange('weekend_percentage', parseInt(e.target.value))
+                    }
                     className="mt-1 w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
