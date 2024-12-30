@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
-import { Clock, DollarSign, Users, Building2, RotateCcw, Globe } from 'lucide-react'
+import { Clock, DollarSign, Users, Building2, RotateCcw, Globe, Plus } from 'lucide-react'
 import { NumberInput } from '../components/NumberInput'
+import { ExpenseRow } from '../components/ExpenseRow'
 import { countries, type Country } from '../data/holidays'
+import { initialExpenses, type ExpenseCategory, type Expense } from '../data/expenses'
 
 type Schedule = {
   start_time: string
@@ -15,20 +17,22 @@ type Pricing = {
   discounted: number
 }
 
+type Capacity = {
+  max_capacity: number
+  weekday_percentage: number
+  weekend_percentage: number
+}
+
 type FormData = {
   operating_schedule: {
     weekday: Schedule
-    weekend: Schedule
   }
   pricing: {
     weekday: Pricing
     weekend: Pricing
   }
-  capacity: {
-    max_capacity: number
-    weekday_percentage: number
-    weekend_percentage: number
-  }
+  capacity: Capacity
+  expenses: ExpenseCategory[]
 }
 
 const CalculatorForm = () => {
@@ -39,38 +43,33 @@ const CalculatorForm = () => {
       weekday: {
         start_time: '10:00',
         end_time: '22:00',
-        session_duration: 45,
-        break_duration: 15,
-      },
-      weekend: {
-        start_time: '10:00',
-        end_time: '22:00',
-        session_duration: 45,
-        break_duration: 15,
+        session_duration: 120,
+        break_duration: 30,
       },
     },
     pricing: {
       weekday: {
-        standard: 13,
-        discounted: 11,
+        standard: 12,
+        discounted: 8,
       },
       weekend: {
         standard: 15,
-        discounted: 13,
+        discounted: 10,
       },
     },
     capacity: {
-      max_capacity: 80,
-      weekday_percentage: 85,
-      weekend_percentage: 50,
+      max_capacity: 200,
+      weekday_percentage: 70,
+      weekend_percentage: 85,
     },
+    expenses: initialExpenses,
   })
 
   const defaultOperatingSchedule = {
     start_time: '10:00',
     end_time: '22:00',
-    session_duration: 45,
-    break_duration: 15,
+    session_duration: 120,
+    break_duration: 30,
   }
 
   const isScheduleModified = () => {
@@ -124,6 +123,76 @@ const CalculatorForm = () => {
     }))
   }
 
+  const handleExpenseUpdate = (
+    categoryId: string,
+    expenseId: string,
+    field: 'name' | 'amount' | 'description',
+    value: string | number
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      expenses: prev.expenses.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              expenses: category.expenses.map((expense) =>
+                expense.id === expenseId
+                  ? {
+                      ...expense,
+                      [field]: value,
+                    }
+                  : expense
+              ),
+              totalAmount:
+                field === 'amount'
+                  ? category.expenses
+                      .map((e) => (e.id === expenseId ? (value as number) : e.amount))
+                      .reduce((a, b) => a + b, 0)
+                  : category.totalAmount,
+            }
+          : category
+      ),
+    }))
+  }
+
+  const handleAddExpense = (categoryId: string) => {
+    const newExpense: Expense = {
+      id: `${categoryId}-${Date.now()}`,
+      name: '',
+      amount: 0,
+      description: '',
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      expenses: prev.expenses.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              expenses: [...category.expenses, newExpense],
+            }
+          : category
+      ),
+    }))
+  }
+
+  const handleDeleteExpense = (categoryId: string, expenseId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      expenses: prev.expenses.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              expenses: category.expenses.filter((expense) => expense.id !== expenseId),
+              totalAmount: category.expenses
+                .filter((expense) => expense.id !== expenseId)
+                .reduce((a, b) => a + b.amount, 0),
+            }
+          : category
+      ),
+    }))
+  }
+
   const calculateWeekdaySessions = () => {
     const startTime = new Date(`2024-01-01T${formData.operating_schedule.weekday.start_time}:00`)
     const endTime = new Date(`2024-01-01T${formData.operating_schedule.weekday.end_time}:00`)
@@ -163,7 +232,8 @@ const CalculatorForm = () => {
     const rentAndUtilities = 50000
     const staffing = 15000
     const maintenance = 5833 // 70k per year
-    return rentAndUtilities + staffing + maintenance
+    const totalExpenses = formData.expenses.reduce((a, b) => a + b.totalAmount, 0)
+    return rentAndUtilities + staffing + maintenance + totalExpenses
   }
 
   const calculateResults = () => {
@@ -411,6 +481,49 @@ const CalculatorForm = () => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Expenses */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center space-x-2 mb-6">
+              <Building2 className="w-6 h-6" />
+              <h2 className="text-xl font-semibold">Expenses</h2>
+            </div>
+
+            <div className="space-y-8">
+              {formData.expenses.map((category) => (
+                <div key={category.id} className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">
+                      {category.name} (£{category.totalAmount.toLocaleString()})
+                    </h3>
+                    <button
+                      onClick={() => handleAddExpense(category.id)}
+                      className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="text-sm">Add Expense</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {category.expenses.map((expense) => (
+                      <ExpenseRow
+                        key={expense.id}
+                        name={expense.name}
+                        amount={expense.amount}
+                        description={expense.description}
+                        onUpdate={(field, value) =>
+                          handleExpenseUpdate(category.id, expense.id, field, value)
+                        }
+                        onDelete={() => handleDeleteExpense(category.id, expense.id)}
+                        showDelete={category.expenses.length > 1}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
