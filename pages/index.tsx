@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Clock, DollarSign, Users, Building2 } from 'lucide-react'
+import { Clock, DollarSign, Users, Building2, RotateCcw } from 'lucide-react'
 
 type Schedule = {
   start_time: string
@@ -64,6 +64,32 @@ const CalculatorForm = () => {
   })
 
   const [activeTab, setActiveTab] = useState('monthly')
+
+  const defaultOperatingSchedule = {
+    start_time: '10:00',
+    end_time: '22:00',
+    session_duration: 45,
+    break_duration: 15,
+  }
+
+  const isScheduleModified = () => {
+    const currentSchedule = formData.operating_schedule.weekday
+    return (
+      currentSchedule.start_time !== defaultOperatingSchedule.start_time ||
+      currentSchedule.end_time !== defaultOperatingSchedule.end_time ||
+      currentSchedule.session_duration !== defaultOperatingSchedule.session_duration ||
+      currentSchedule.break_duration !== defaultOperatingSchedule.break_duration
+    )
+  }
+
+  const handleReset = () => {
+    setFormData((prev) => ({
+      ...prev,
+      operating_schedule: {
+        weekday: defaultOperatingSchedule,
+      },
+    }))
+  }
 
   const handleChange = <
     T extends keyof FormData,
@@ -214,8 +240,19 @@ const CalculatorForm = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 text-sm text-gray-600">
-                  Approximately <b>{weekdaySessions}</b> sessions per day
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Approximately <b>{weekdaySessions}</b> sessions per day
+                  </div>
+                  {isScheduleModified() && (
+                    <button
+                      onClick={handleReset}
+                      className="text-sm text-gray-500 hover:text-gray-700 flex items-center space-x-1"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Reset to Initials</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
