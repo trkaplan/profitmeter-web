@@ -15,6 +15,8 @@ type Schedule = {
 type Pricing = {
   standard: number
   discounted: number
+  standard_distribution: number
+  discounted_distribution: number
 }
 
 type Capacity = {
@@ -37,7 +39,9 @@ type FormData = {
 
 const CalculatorForm = () => {
   const [activeTab, setActiveTab] = useState<'monthly' | 'yearly'>('monthly')
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries.find((c) => c.code === 'FR') || countries[0])
+  const [selectedCountry, setSelectedCountry] = useState<Country>(
+    countries.find((c) => c.code === 'FR') || countries[0]
+  )
   const [formData, setFormData] = useState<FormData>({
     operating_schedule: {
       weekday: {
@@ -51,10 +55,14 @@ const CalculatorForm = () => {
       weekday: {
         standard: 12,
         discounted: 8,
+        standard_distribution: 70,
+        discounted_distribution: 30,
       },
       weekend: {
         standard: 15,
         discounted: 10,
+        standard_distribution: 70,
+        discounted_distribution: 30,
       },
     },
     capacity: {
@@ -196,8 +204,7 @@ const CalculatorForm = () => {
   const calculateWeekdaySessions = () => {
     const startTime = new Date(`2024-01-01T${formData.operating_schedule.weekday.start_time}:00`)
     const endTime = new Date(`2024-01-01T${formData.operating_schedule.weekday.end_time}:00`)
-    const totalMinutes =
-      (endTime.getTime() - startTime.getTime()) / (1000 * 60) // Convert to minutes
+    const totalMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60) // Convert to minutes
     const sessionLength =
       formData.operating_schedule.weekday.session_duration +
       formData.operating_schedule.weekday.break_duration
@@ -214,16 +221,36 @@ const CalculatorForm = () => {
     const weekendsPerMonth = Math.round(30.44 - workingDaysPerMonth) // Average days in month minus working days
 
     // Calculate weekday revenue
-    const weekdayCapacity = Math.floor((formData.capacity.max_capacity * formData.capacity.weekday_percentage) / 100)
-    const weekdayStandardRevenue = weekdaySessions * weekdaysPerMonth * weekdayCapacity * formData.pricing.weekday.standard * 0.7 // 70% standard tickets
-    const weekdayDiscountedRevenue = weekdaySessions * weekdaysPerMonth * weekdayCapacity * formData.pricing.weekday.discounted * 0.3 // 30% discounted tickets
+    const weekdayCapacity = Math.floor(
+      (formData.capacity.max_capacity * formData.capacity.weekday_percentage) / 100
+    )
+    const weekdayStandardRevenue =
+      weekdaySessions * weekdaysPerMonth * weekdayCapacity * formData.pricing.weekday.standard * (formData.pricing.weekday.standard_distribution / 100) // 70% standard tickets
+    const weekdayDiscountedRevenue =
+      weekdaySessions *
+      weekdaysPerMonth *
+      weekdayCapacity *
+      formData.pricing.weekday.discounted *
+      (formData.pricing.weekday.discounted_distribution / 100) // 30% discounted tickets
 
     // Calculate weekend revenue
-    const weekendCapacity = Math.floor((formData.capacity.max_capacity * formData.capacity.weekend_percentage) / 100)
-    const weekendStandardRevenue = weekendSessions * weekendsPerMonth * weekendCapacity * formData.pricing.weekend.standard * 0.7 // 70% standard tickets
-    const weekendDiscountedRevenue = weekendSessions * weekendsPerMonth * weekendCapacity * formData.pricing.weekend.discounted * 0.3 // 30% discounted tickets
+    const weekendCapacity = Math.floor(
+      (formData.capacity.max_capacity * formData.capacity.weekend_percentage) / 100
+    )
+    const weekendStandardRevenue =
+      weekendSessions * weekendsPerMonth * weekendCapacity * formData.pricing.weekend.standard * (formData.pricing.weekend.standard_distribution / 100) // 70% standard tickets
+    const weekendDiscountedRevenue =
+      weekendSessions *
+      weekendsPerMonth *
+      weekendCapacity *
+      formData.pricing.weekend.discounted *
+      (formData.pricing.weekend.discounted_distribution / 100) // 30% discounted tickets
 
-    const monthlyRevenue = weekdayStandardRevenue + weekdayDiscountedRevenue + weekendStandardRevenue + weekendDiscountedRevenue
+    const monthlyRevenue =
+      weekdayStandardRevenue +
+      weekdayDiscountedRevenue +
+      weekendStandardRevenue +
+      weekendDiscountedRevenue
     return Math.round(monthlyRevenue)
   }
 
@@ -270,25 +297,11 @@ const CalculatorForm = () => {
         <div className="col-span-3 space-y-6">
           {/* Operating Schedule */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2">
-                <Globe className="w-5 h-5 text-gray-500" />
-                <label className="block text-sm font-medium">Country</label>
+                <Clock className="w-6 h-6" />
+                <h2 className="text-xl font-semibold">Yearly Session Parameters</h2>
               </div>
-              <select
-                value={selectedCountry.code}
-                onChange={(e) => {
-                  const country = countries.find((c) => c.code === e.target.value)
-                  if (country) setSelectedCountry(country)
-                }}
-                className="rounded-md border border-gray-300 p-2 text-sm"
-              >
-                {countries.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.name} ({country.holidays} holidays)
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="flex space-x-8">
@@ -297,7 +310,9 @@ const CalculatorForm = () => {
                 <div className="flex space-x-8">
                   {/* Operating Hours */}
                   <div className="flex-1">
-                    <label className="block text-sm font-medium">Operating Hours</label>
+                    <label className="block text-sm font-medium">
+                      <b>Operating Hours</b>
+                    </label>
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
                         <label className="block text-sm">Opening Time</label>
@@ -336,19 +351,16 @@ const CalculatorForm = () => {
 
                   {/* Session Details */}
                   <div className="flex-1">
-                    <label className="block text-sm font-medium">Session Details</label>
+                    <label className="block text-sm font-medium">
+                      <b>Session Details</b>
+                    </label>
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div>
                         <label className="block text-sm">Duration (min)</label>
                         <NumberInput
                           value={formData.operating_schedule.weekday.session_duration}
                           onChange={(value) =>
-                            handleChange(
-                              'operating_schedule',
-                              'weekday',
-                              'session_duration',
-                              value
-                            )
+                            handleChange('operating_schedule', 'weekday', 'session_duration', value)
                           }
                           className="mt-1 w-20 rounded-md border border-gray-300 p-2"
                         />
@@ -358,12 +370,7 @@ const CalculatorForm = () => {
                         <NumberInput
                           value={formData.operating_schedule.weekday.break_duration}
                           onChange={(value) =>
-                            handleChange(
-                              'operating_schedule',
-                              'weekday',
-                              'break_duration',
-                              value
-                            )
+                            handleChange('operating_schedule', 'weekday', 'break_duration', value)
                           }
                           className="mt-1 w-20 rounded-md border border-gray-300 p-2"
                         />
@@ -376,18 +383,49 @@ const CalculatorForm = () => {
                   <div className="text-sm text-gray-600">
                     Approximately <b>{weekdaySessions}</b> sessions per day
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {selectedCountry.workingDays} working days per year
-                  </div>
                   {isScheduleModified() && (
-                    <button
-                      onClick={handleReset}
-                      className="text-sm text-gray-500 hover:text-gray-700 flex items-center space-x-1"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>Reset to Initials</span>
-                    </button>
+                    <div>
+                      <button
+                        onClick={handleReset}
+                        className="text-sm text-gray-500 hover:text-gray-700 flex items-center space-x-1"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>Reset to Initials</span>
+                      </button>
+                    </div>
                   )}
+                </div>
+                <div className="mt-4 flex items-center space-x-2">
+                  <Globe className="w-5 h-5 text-gray-500" />
+                  <label className="block text-sm font-medium">Country</label>
+                  <select
+                    value={selectedCountry.code}
+                    onChange={(e) => {
+                      const country = countries.find((c) => c.code === e.target.value)
+                      if (country) setSelectedCountry(country)
+                    }}
+                    className="rounded-md border border-gray-300 p-2 text-sm"
+                  >
+                    {countries.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name} ({country.holidays} holidays)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-4 flex items-center space-x-2">
+                  <div className="text-sm text-gray-600">
+                    <b>{selectedCountry.workingDays}</b> working days per year
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center space-x-2">
+                  <div className="text-sm text-gray-600">
+                    <b>
+                      {weekdaySessions} * {selectedCountry.workingDays} ={' '}
+                      {weekdaySessions * selectedCountry.workingDays}
+                    </b>{' '}
+                    sessions per year
+                  </div>
                 </div>
               </div>
             </div>
@@ -401,44 +439,51 @@ const CalculatorForm = () => {
             </div>
             <div className="overflow-x-auto">
               <div className="min-w-full">
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-4 gap-4 mb-4">
                   <div className="font-medium">Type</div>
                   <div className="font-medium">Weekday (£)</div>
                   <div className="font-medium">Weekend (£)</div>
+                  <div className="font-medium">Distribution (%)</div>
                 </div>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-4 gap-4">
                     <div className="flex items-center">Standard</div>
                     <NumberInput
                       value={formData.pricing.weekday.standard}
-                      onChange={(value) =>
-                        handleChange('pricing', 'weekday', 'standard', value)
-                      }
+                      onChange={(value) => handleChange('pricing', 'weekday', 'standard', value)}
                       className="rounded-md border border-gray-300 p-2"
                     />
                     <NumberInput
                       value={formData.pricing.weekend.standard}
-                      onChange={(value) =>
-                        handleChange('pricing', 'weekend', 'standard', value)
-                      }
+                      onChange={(value) => handleChange('pricing', 'weekend', 'standard', value)}
                       className="rounded-md border border-gray-300 p-2"
                     />
+                    <NumberInput
+                      value={formData.pricing.weekday.standard_distribution}
+                      onChange={(value) => handleChange('pricing', 'weekday', 'standard_distribution', value)}
+                      className="rounded-md border border-gray-300 p-2"
+                      min={0}
+                      max={100}
+                    />
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-4 gap-4">
                     <div className="flex items-center">Discounted</div>
                     <NumberInput
                       value={formData.pricing.weekday.discounted}
-                      onChange={(value) =>
-                        handleChange('pricing', 'weekday', 'discounted', value)
-                      }
+                      onChange={(value) => handleChange('pricing', 'weekday', 'discounted', value)}
                       className="rounded-md border border-gray-300 p-2"
                     />
                     <NumberInput
                       value={formData.pricing.weekend.discounted}
-                      onChange={(value) =>
-                        handleChange('pricing', 'weekend', 'discounted', value)
-                      }
+                      onChange={(value) => handleChange('pricing', 'weekend', 'discounted', value)}
                       className="rounded-md border border-gray-300 p-2"
+                    />
+                    <NumberInput
+                      value={formData.pricing.weekday.discounted_distribution}
+                      onChange={(value) => handleChange('pricing', 'weekday', 'discounted_distribution', value)}
+                      className="rounded-md border border-gray-300 p-2"
+                      min={0}
+                      max={100}
                     />
                   </div>
                 </div>
@@ -448,11 +493,12 @@ const CalculatorForm = () => {
 
           {/* Capacity */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-6">
               <Users className="w-6 h-6" />
               <h2 className="text-xl font-semibold">Capacity</h2>
             </div>
-            <div className="space-y-4">
+
+            <div className="grid grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium">Maximum Capacity</label>
                 <NumberInput
@@ -461,25 +507,25 @@ const CalculatorForm = () => {
                   className="mt-1 w-full rounded-md border border-gray-300 p-2"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium">Weekday Capacity %</label>
-                  <NumberInput
-                    value={formData.capacity.weekday_percentage}
-                    onChange={(value) => handleCapacityChange('weekday_percentage', value)}
-                    max={100}
-                    className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Weekend Capacity %</label>
-                  <NumberInput
-                    value={formData.capacity.weekend_percentage}
-                    onChange={(value) => handleCapacityChange('weekend_percentage', value)}
-                    max={100}
-                    className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                  />
-                </div>
+
+              <div>
+                <label className="block text-sm font-medium">Weekday Capacity %</label>
+                <NumberInput
+                  value={formData.capacity.weekday_percentage}
+                  onChange={(value) => handleCapacityChange('weekday_percentage', value)}
+                  max={100}
+                  className="mt-1 w-full rounded-md border border-gray-300 p-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">Weekend Capacity %</label>
+                <NumberInput
+                  value={formData.capacity.weekend_percentage}
+                  onChange={(value) => handleCapacityChange('weekend_percentage', value)}
+                  max={100}
+                  className="mt-1 w-full rounded-md border border-gray-300 p-2"
+                />
               </div>
             </div>
           </div>
@@ -564,11 +610,15 @@ const CalculatorForm = () => {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Expenses</span>
-                    <span className="font-semibold">{formatCurrency(results.monthly.expenses)}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(results.monthly.expenses)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Profit</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(results.monthly.profit)}</span>
+                    <span className="font-semibold text-green-600">
+                      {formatCurrency(results.monthly.profit)}
+                    </span>
                   </div>
                 </>
               ) : (
@@ -583,7 +633,9 @@ const CalculatorForm = () => {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Profit</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(results.yearly.profit)}</span>
+                    <span className="font-semibold text-green-600">
+                      {formatCurrency(results.yearly.profit)}
+                    </span>
                   </div>
                 </>
               )}
