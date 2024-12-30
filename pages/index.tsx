@@ -37,6 +37,23 @@ const CalculatorForm = () => {
 
   const [activeTab, setActiveTab] = useState('monthly')
 
+  const calculateSessionsPerDay = (startTime: string, endTime: string, sessionDuration: number, breakDuration: number) => {
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+    
+    const totalMinutes = (endHour - startHour) * 60 + (endMinute - startMinute)
+    const sessionTotalDuration = sessionDuration + breakDuration
+    
+    return Math.floor(totalMinutes / sessionTotalDuration)
+  }
+
+  const weekdaySessions = calculateSessionsPerDay(
+    formData.operating_schedule.weekday.start_time,
+    formData.operating_schedule.weekday.end_time,
+    formData.operating_schedule.weekday.session_duration,
+    formData.operating_schedule.weekday.break_duration
+  )
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Ice Skating Rink Calculator</h1>
@@ -93,6 +110,9 @@ const CalculatorForm = () => {
                       className="mt-1 w-full rounded-md border border-gray-300 p-2"
                     />
                   </div>
+                </div>
+                <div className="mt-4 text-sm text-gray-600">
+                  Approximately {weekdaySessions} sessions per day
                 </div>
               </div>
             </div>
