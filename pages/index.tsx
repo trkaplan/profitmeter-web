@@ -266,8 +266,8 @@ const CalculatorForm = () => {
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Ice Skating Rink Calculator</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-6">
+      <div className="grid grid-cols-5 gap-6">
+        <div className="col-span-3 space-y-6">
           {/* Operating Schedule */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
@@ -529,7 +529,7 @@ const CalculatorForm = () => {
         </div>
 
         {/* Results Panel */}
-        <div className="space-y-6">
+        <div className="col-span-2 space-y-6">
           <div className="bg-white rounded-lg shadow p-6 sticky top-6">
             <div className="flex items-center space-x-2 mb-4">
               <Building2 className="w-6 h-6" />

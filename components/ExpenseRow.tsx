@@ -21,7 +21,7 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-12 gap-4 items-center">
-      <div className="col-span-3">
+      <div className="col-span-4">
         <input
           type="text"
           value={name}
@@ -37,7 +37,7 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({
           className="w-full rounded-md border border-gray-300 p-2 text-sm"
         />
       </div>
-      <div className="col-span-6">
+      <div className="col-span-5">
         <input
           type="text"
           value={description}
