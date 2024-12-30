@@ -38,7 +38,7 @@ type FormData = {
 }
 
 const CalculatorForm = () => {
-  const [activeTab, setActiveTab] = useState<'monthly' | 'yearly'>('monthly')
+  const [activeTab, setActiveTab] = useState<'monthly' | 'yearly'>('yearly')
   const [selectedCountry, setSelectedCountry] = useState<Country>(
     countries.find((c) => c.code === 'FR') || countries[0]
   )
@@ -66,9 +66,9 @@ const CalculatorForm = () => {
       },
     },
     capacity: {
-      max_capacity: 200,
-      weekday_percentage: 70,
-      weekend_percentage: 85,
+      max_capacity: 100,
+      weekday_percentage: 50,
+      weekend_percentage: 80,
     },
     expenses: initialExpenses,
   })
@@ -221,73 +221,81 @@ const CalculatorForm = () => {
     const weekendsPerMonth = Math.round(30.44 - workingDaysPerMonth) // Average days in month minus working days
 
     // Calculate weekday revenue
-    const weekdayCapacity = Math.floor(
+    const weekdayCapacity = Math.round(
       (formData.capacity.max_capacity * formData.capacity.weekday_percentage) / 100
     )
-    const weekdayStandardRevenue =
-      weekdaySessions * weekdaysPerMonth * weekdayCapacity * formData.pricing.weekday.standard * (formData.pricing.weekday.standard_distribution / 100) // 70% standard tickets
-    const weekdayDiscountedRevenue =
+    const weekdayStandardRevenue = Math.round(
       weekdaySessions *
-      weekdaysPerMonth *
-      weekdayCapacity *
-      formData.pricing.weekday.discounted *
-      (formData.pricing.weekday.discounted_distribution / 100) // 30% discounted tickets
+        weekdaysPerMonth *
+        weekdayCapacity *
+        formData.pricing.weekday.standard *
+        (formData.pricing.weekday.standard_distribution / 100)
+    )
+    const weekdayDiscountedRevenue = Math.round(
+      weekdaySessions *
+        weekdaysPerMonth *
+        weekdayCapacity *
+        formData.pricing.weekday.discounted *
+        (formData.pricing.weekday.discounted_distribution / 100)
+    )
 
     // Calculate weekend revenue
-    const weekendCapacity = Math.floor(
+    const weekendCapacity = Math.round(
       (formData.capacity.max_capacity * formData.capacity.weekend_percentage) / 100
     )
-    const weekendStandardRevenue =
-      weekendSessions * weekendsPerMonth * weekendCapacity * formData.pricing.weekend.standard * (formData.pricing.weekend.standard_distribution / 100) // 70% standard tickets
-    const weekendDiscountedRevenue =
+    const weekendStandardRevenue = Math.round(
       weekendSessions *
-      weekendsPerMonth *
-      weekendCapacity *
-      formData.pricing.weekend.discounted *
-      (formData.pricing.weekend.discounted_distribution / 100) // 30% discounted tickets
+        weekendsPerMonth *
+        weekendCapacity *
+        formData.pricing.weekend.standard *
+        (formData.pricing.weekend.standard_distribution / 100)
+    )
+    const weekendDiscountedRevenue = Math.round(
+      weekendSessions *
+        weekendsPerMonth *
+        weekendCapacity *
+        formData.pricing.weekend.discounted *
+        (formData.pricing.weekend.discounted_distribution / 100)
+    )
 
-    const monthlyRevenue =
+    const monthlyRevenue = Math.round(
       weekdayStandardRevenue +
-      weekdayDiscountedRevenue +
-      weekendStandardRevenue +
-      weekendDiscountedRevenue
-    return Math.round(monthlyRevenue)
+        weekdayDiscountedRevenue +
+        weekendStandardRevenue +
+        weekendDiscountedRevenue
+    )
+    return monthlyRevenue
   }
 
-  const calculateMonthlyExpenses = () => {
-    // Fixed monthly expenses (example values)
-    const rentAndUtilities = 50000
-    const staffing = 15000
-    const maintenance = 5833 // 70k per year
-    const totalExpenses = formData.expenses.reduce((a, b) => a + b.totalAmount, 0)
-    return rentAndUtilities + staffing + maintenance + totalExpenses
-  }
-
-  const calculateResults = () => {
+  const calculateMonthlyResults = () => {
     const monthlyRevenue = calculateMonthlyRevenue()
-    const monthlyExpenses = calculateMonthlyExpenses()
-    const monthlyProfit = monthlyRevenue - monthlyExpenses
+    const totalExpenses = formData.expenses.reduce((a, b) => a + b.totalAmount, 0)
+    const monthlyExpenses = Math.round(totalExpenses / 12) // Round monthly expenses
+    const monthlyProfit = Math.round(monthlyRevenue - monthlyExpenses)
 
     return {
-      monthly: {
-        revenue: monthlyRevenue,
-        expenses: monthlyExpenses,
-        profit: monthlyProfit,
-      },
-      yearly: {
-        revenue: monthlyRevenue * 12,
-        expenses: monthlyExpenses * 12,
-        profit: monthlyProfit * 12,
-      },
+      revenue: Math.round(monthlyRevenue),
+      expenses: monthlyExpenses,
+      profit: monthlyProfit,
+    }
+  }
+
+  const calculateYearlyResults = () => {
+    const monthlyResults = calculateMonthlyResults()
+    return {
+      revenue: Math.round(monthlyResults.revenue * 12),
+      expenses: Math.round(monthlyResults.expenses * 12),
+      profit: Math.round(monthlyResults.profit * 12),
     }
   }
 
   const formatCurrency = (amount: number) => {
-    return `£${amount.toLocaleString()}`
+    return `€${amount.toLocaleString()}`
   }
 
   const weekdaySessions = calculateWeekdaySessions()
-  const results = calculateResults()
+  const monthlyResults = calculateMonthlyResults()
+  const yearlyResults = calculateYearlyResults()
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -441,8 +449,8 @@ const CalculatorForm = () => {
               <div className="min-w-full">
                 <div className="grid grid-cols-4 gap-4 mb-4">
                   <div className="font-medium">Type</div>
-                  <div className="font-medium">Weekday (£)</div>
-                  <div className="font-medium">Weekend (£)</div>
+                  <div className="font-medium">Weekday (€)</div>
+                  <div className="font-medium">Weekend (€)</div>
                   <div className="font-medium">Distribution (%)</div>
                 </div>
                 <div className="space-y-4">
@@ -460,7 +468,9 @@ const CalculatorForm = () => {
                     />
                     <NumberInput
                       value={formData.pricing.weekday.standard_distribution}
-                      onChange={(value) => handleChange('pricing', 'weekday', 'standard_distribution', value)}
+                      onChange={(value) =>
+                        handleChange('pricing', 'weekday', 'standard_distribution', value)
+                      }
                       className="rounded-md border border-gray-300 p-2"
                       min={0}
                       max={100}
@@ -480,7 +490,9 @@ const CalculatorForm = () => {
                     />
                     <NumberInput
                       value={formData.pricing.weekday.discounted_distribution}
-                      onChange={(value) => handleChange('pricing', 'weekday', 'discounted_distribution', value)}
+                      onChange={(value) =>
+                        handleChange('pricing', 'weekday', 'discounted_distribution', value)
+                      }
                       className="rounded-md border border-gray-300 p-2"
                       min={0}
                       max={100}
@@ -532,9 +544,10 @@ const CalculatorForm = () => {
 
           {/* Expenses */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center space-x-2 mb-6">
+            <div className="flex items-center space-x-2 mb-4">
               <Building2 className="w-6 h-6" />
               <h2 className="text-xl font-semibold">Expenses</h2>
+              <span className="text-sm text-gray-500">(yearly amounts)</span>
             </div>
 
             <div className="space-y-8">
@@ -542,7 +555,7 @@ const CalculatorForm = () => {
                 <div key={category.id} className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">
-                      {category.name} (£{category.totalAmount.toLocaleString()})
+                      {category.name} (€{category.totalAmount.toLocaleString()})
                     </h3>
                     <button
                       onClick={() => handleAddExpense(category.id)}
@@ -606,18 +619,16 @@ const CalculatorForm = () => {
                 <>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Revenue</span>
-                    <span className="font-semibold">{formatCurrency(results.monthly.revenue)}</span>
+                    <span className="font-semibold">{formatCurrency(monthlyResults.revenue)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Expenses</span>
-                    <span className="font-semibold">
-                      {formatCurrency(results.monthly.expenses)}
-                    </span>
+                    <span className="font-semibold">{formatCurrency(monthlyResults.expenses)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Profit</span>
                     <span className="font-semibold text-green-600">
-                      {formatCurrency(results.monthly.profit)}
+                      {formatCurrency(monthlyResults.profit)}
                     </span>
                   </div>
                 </>
@@ -625,16 +636,16 @@ const CalculatorForm = () => {
                 <>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Revenue</span>
-                    <span className="font-semibold">{formatCurrency(results.yearly.revenue)}</span>
+                    <span className="font-semibold">{formatCurrency(yearlyResults.revenue)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Expenses</span>
-                    <span className="font-semibold">{formatCurrency(results.yearly.expenses)}</span>
+                    <span className="font-semibold">{formatCurrency(yearlyResults.expenses)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Profit</span>
                     <span className="font-semibold text-green-600">
-                      {formatCurrency(results.yearly.profit)}
+                      {formatCurrency(yearlyResults.profit)}
                     </span>
                   </div>
                 </>

@@ -35,6 +35,7 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({
           value={amount}
           onChange={(value) => onUpdate('amount', value)}
           className="w-full rounded-md border border-gray-300 p-2 text-sm"
+          placeholder="Amount (€)"
         />
       </div>
       <div className="col-span-5">

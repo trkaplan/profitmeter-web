@@ -6,6 +6,7 @@ interface NumberInputProps {
   min?: number
   max?: number
   className?: string
+  placeholder?: string
 }
 
 export const NumberInput: React.FC<NumberInputProps> = ({
@@ -14,6 +15,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   min = 0,
   max,
   className = '',
+  placeholder,
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value === '' ? min : parseInt(e.target.value, 10)
@@ -54,6 +56,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
       min={min}
       max={max}
       className={className}
+      placeholder={placeholder}
     />
   )
 }
