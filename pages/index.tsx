@@ -21,8 +21,12 @@ type Pricing = {
 
 type Capacity = {
   max_capacity: number
-  weekday_percentage: number
-  weekend_percentage: number
+  high_season_weekday_percentage: number
+  high_season_weekend_percentage: number
+  mid_season_weekday_percentage: number
+  mid_season_weekend_percentage: number
+  low_season_weekday_percentage: number
+  low_season_weekend_percentage: number
 }
 
 type FormData = {
@@ -67,8 +71,12 @@ const CalculatorForm = () => {
     },
     capacity: {
       max_capacity: 100,
-      weekday_percentage: 50,
-      weekend_percentage: 80,
+      high_season_weekday_percentage: 80,
+      high_season_weekend_percentage: 90,
+      mid_season_weekday_percentage: 60,
+      mid_season_weekend_percentage: 80,
+      low_season_weekday_percentage: 30,
+      low_season_weekend_percentage: 40,
     },
     expenses: initialExpenses,
   })
@@ -109,16 +117,45 @@ const CalculatorForm = () => {
     field: V,
     value: FormData[T][U][V]
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [subsection]: {
-          ...prev[section][subsection],
-          [field]: value,
+    setFormData((prev) => {
+      // Handle distribution adjustments
+      if (
+        section === 'pricing' &&
+        (field === 'standard_distribution' || field === 'discounted_distribution')
+      ) {
+        const newValue = value as number
+        const pricing = prev[section][subsection] as Pricing
+
+        // Ensure the value is between 0 and 100
+        const clampedValue = Math.max(0, Math.min(100, newValue))
+
+        return {
+          ...prev,
+          [section]: {
+            ...prev[section],
+            [subsection]: {
+              ...prev[section][subsection],
+              standard_distribution:
+                field === 'standard_distribution' ? clampedValue : 100 - clampedValue,
+              discounted_distribution:
+                field === 'discounted_distribution' ? clampedValue : 100 - clampedValue,
+            },
+          },
+        }
+      }
+
+      // Handle other fields normally
+      return {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [subsection]: {
+            ...prev[section][subsection],
+            [field]: value,
+          },
         },
-      },
-    }))
+      }
+    })
   }
 
   const handleCapacityChange = (field: keyof FormData['capacity'], value: number) => {
@@ -211,18 +248,44 @@ const CalculatorForm = () => {
     return Math.floor(totalMinutes / sessionLength)
   }
 
+  const getSeasonalPercentages = (month: number): { weekday: number; weekend: number } => {
+    // High season: Nov-Feb (10, 11, 0, 1)
+    if (month === 10 || month === 11 || month === 0 || month === 1) {
+      return {
+        weekday: formData.capacity.high_season_weekday_percentage,
+        weekend: formData.capacity.high_season_weekend_percentage,
+      }
+    }
+    // Mid season: Mar-Apr, Sep-Oct (2, 3, 8, 9)
+    if (month === 2 || month === 3 || month === 8 || month === 9) {
+      return {
+        weekday: formData.capacity.mid_season_weekday_percentage,
+        weekend: formData.capacity.mid_season_weekend_percentage,
+      }
+    }
+    // Low season: May-Aug (4, 5, 6, 7)
+    return {
+      weekday: formData.capacity.low_season_weekday_percentage,
+      weekend: formData.capacity.low_season_weekend_percentage,
+    }
+  }
+
   const calculateMonthlyRevenue = () => {
     const weekdaySessions = calculateWeekdaySessions()
     const weekendSessions = weekdaySessions // Assuming same schedule for weekends
+
+    // Get current month (0-11)
+    const currentMonth = new Date().getMonth()
+    const seasonalPercentages = getSeasonalPercentages(currentMonth)
 
     // Calculate average working days per month (excluding holidays)
     const workingDaysPerMonth = selectedCountry.workingDays / 12
     const weekdaysPerMonth = Math.round(workingDaysPerMonth) // Weekdays excluding holidays
     const weekendsPerMonth = Math.round(30.44 - workingDaysPerMonth) // Average days in month minus working days
 
-    // Calculate weekday revenue
+    // Calculate weekday revenue with seasonal adjustment
     const weekdayCapacity = Math.round(
-      (formData.capacity.max_capacity * formData.capacity.weekday_percentage) / 100
+      (formData.capacity.max_capacity * seasonalPercentages.weekday) / 100
     )
     const weekdayStandardRevenue = Math.round(
       weekdaySessions *
@@ -239,9 +302,9 @@ const CalculatorForm = () => {
         (formData.pricing.weekday.discounted_distribution / 100)
     )
 
-    // Calculate weekend revenue
+    // Calculate weekend revenue with seasonal adjustment
     const weekendCapacity = Math.round(
-      (formData.capacity.max_capacity * formData.capacity.weekend_percentage) / 100
+      (formData.capacity.max_capacity * seasonalPercentages.weekend) / 100
     )
     const weekendStandardRevenue = Math.round(
       weekendSessions *
@@ -258,17 +321,73 @@ const CalculatorForm = () => {
         (formData.pricing.weekend.discounted_distribution / 100)
     )
 
-    const monthlyRevenue = Math.round(
-      weekdayStandardRevenue +
+    return {
+      weekdayStandardRevenue,
+      weekdayDiscountedRevenue,
+      weekendStandardRevenue,
+      weekendDiscountedRevenue,
+      totalRevenue:
+        weekdayStandardRevenue +
         weekdayDiscountedRevenue +
         weekendStandardRevenue +
-        weekendDiscountedRevenue
-    )
-    return monthlyRevenue
+        weekendDiscountedRevenue,
+    }
+  }
+
+  const calculateYearlyResults = () => {
+    let totalRevenue = 0
+    let monthlyRevenues = []
+
+    // Calculate revenue for each month
+    for (let month = 0; month < 12; month++) {
+      const seasonalPercentages = getSeasonalPercentages(month)
+
+      // Calculate base monthly revenue
+      const weekdaySessions = calculateWeekdaySessions()
+      const weekendSessions = weekdaySessions
+
+      const workingDaysPerMonth = selectedCountry.workingDays / 12
+      const weekdaysPerMonth = Math.round(workingDaysPerMonth)
+      const weekendsPerMonth = Math.round(30.44 - workingDaysPerMonth)
+
+      // Calculate weekday revenue with seasonal adjustment
+      const weekdayCapacity = Math.round(
+        (formData.capacity.max_capacity * seasonalPercentages.weekday) / 100
+      )
+      const weekdayRevenue =
+        weekdaySessions *
+        weekdaysPerMonth *
+        weekdayCapacity *
+        ((formData.pricing.weekday.standard * formData.pricing.weekday.standard_distribution +
+          formData.pricing.weekday.discounted * formData.pricing.weekday.discounted_distribution) /
+          100)
+
+      // Calculate weekend revenue with seasonal adjustment
+      const weekendCapacity = Math.round(
+        (formData.capacity.max_capacity * seasonalPercentages.weekend) / 100
+      )
+      const weekendRevenue =
+        weekendSessions *
+        weekendsPerMonth *
+        weekendCapacity *
+        ((formData.pricing.weekend.standard * formData.pricing.weekend.standard_distribution +
+          formData.pricing.weekend.discounted * formData.pricing.weekend.discounted_distribution) /
+          100)
+
+      const monthlyRevenue = Math.round(weekdayRevenue + weekendRevenue)
+      monthlyRevenues.push(monthlyRevenue)
+      totalRevenue += monthlyRevenue
+    }
+
+    return {
+      monthlyRevenues,
+      totalRevenue: Math.round(totalRevenue),
+      averageMonthlyRevenue: Math.round(totalRevenue / 12),
+    }
   }
 
   const calculateMonthlyResults = () => {
-    const monthlyRevenue = calculateMonthlyRevenue()
+    const monthlyRevenue = calculateMonthlyRevenue().totalRevenue
     const totalExpenses = formData.expenses.reduce((a, b) => a + b.totalAmount, 0)
     const monthlyExpenses = Math.round(totalExpenses / 12) // Round monthly expenses
     const monthlyProfit = Math.round(monthlyRevenue - monthlyExpenses)
@@ -277,15 +396,6 @@ const CalculatorForm = () => {
       revenue: Math.round(monthlyRevenue),
       expenses: monthlyExpenses,
       profit: monthlyProfit,
-    }
-  }
-
-  const calculateYearlyResults = () => {
-    const monthlyResults = calculateMonthlyResults()
-    return {
-      revenue: Math.round(monthlyResults.revenue * 12),
-      expenses: Math.round(monthlyResults.expenses * 12),
-      profit: Math.round(monthlyResults.profit * 12),
     }
   }
 
@@ -510,34 +620,100 @@ const CalculatorForm = () => {
               <h2 className="text-xl font-semibold">Capacity</h2>
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium">Maximum Capacity</label>
-                <NumberInput
-                  value={formData.capacity.max_capacity}
-                  onChange={(value) => handleCapacityChange('max_capacity', value)}
-                  className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                />
-              </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">
+                    Max Capacity
+                    <br />
+                    &nbsp;
+                  </label>
+                  <div className="mt-1">
+                    <NumberInput
+                      value={formData.capacity.max_capacity}
+                      onChange={(value) => handleCapacityChange('max_capacity', value)}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium">Weekday Capacity %</label>
-                <NumberInput
-                  value={formData.capacity.weekday_percentage}
-                  onChange={(value) => handleCapacityChange('weekday_percentage', value)}
-                  max={100}
-                  className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium">
+                    High Season Cap. % (Weekday/Weekend)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <NumberInput
+                      value={formData.capacity.high_season_weekday_percentage}
+                      onChange={(value) =>
+                        handleCapacityChange('high_season_weekday_percentage', value)
+                      }
+                      max={100}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      placeholder="Weekday"
+                    />
+                    <NumberInput
+                      value={formData.capacity.high_season_weekend_percentage}
+                      onChange={(value) =>
+                        handleCapacityChange('high_season_weekend_percentage', value)
+                      }
+                      max={100}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      placeholder="Weekend"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium">Weekend Capacity %</label>
-                <NumberInput
-                  value={formData.capacity.weekend_percentage}
-                  onChange={(value) => handleCapacityChange('weekend_percentage', value)}
-                  max={100}
-                  className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                />
+                <div>
+                  <label className="block text-sm font-medium">
+                    Mid Season Cap. % (Weekday/Weekend)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <NumberInput
+                      value={formData.capacity.mid_season_weekday_percentage}
+                      onChange={(value) =>
+                        handleCapacityChange('mid_season_weekday_percentage', value)
+                      }
+                      max={100}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      placeholder="Weekday"
+                    />
+                    <NumberInput
+                      value={formData.capacity.mid_season_weekend_percentage}
+                      onChange={(value) =>
+                        handleCapacityChange('mid_season_weekend_percentage', value)
+                      }
+                      max={100}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      placeholder="Weekend"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium">
+                    Low Season Cap. % (Weekday/Weekend)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <NumberInput
+                      value={formData.capacity.low_season_weekday_percentage}
+                      onChange={(value) =>
+                        handleCapacityChange('low_season_weekday_percentage', value)
+                      }
+                      max={100}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      placeholder="Weekday"
+                    />
+                    <NumberInput
+                      value={formData.capacity.low_season_weekend_percentage}
+                      onChange={(value) =>
+                        handleCapacityChange('low_season_weekend_percentage', value)
+                      }
+                      max={100}
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      placeholder="Weekend"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -636,16 +812,23 @@ const CalculatorForm = () => {
                 <>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Revenue</span>
-                    <span className="font-semibold">{formatCurrency(yearlyResults.revenue)}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(yearlyResults.totalRevenue)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Expenses</span>
-                    <span className="font-semibold">{formatCurrency(yearlyResults.expenses)}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(yearlyResults.totalRevenue)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
                     <span>Profit</span>
                     <span className="font-semibold text-green-600">
-                      {formatCurrency(yearlyResults.profit)}
+                      {formatCurrency(
+                        yearlyResults.totalRevenue -
+                          formData.expenses.reduce((a, b) => a + b.totalAmount, 0)
+                      )}
                     </span>
                   </div>
                 </>
